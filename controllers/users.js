@@ -24,7 +24,12 @@ module.exports.getUserById = (req, res) => {
       }
       res.status(200).send(user);
     })
-    .catch(() => res.status(500).send({ message: 'Внутренняя ошибка сервера.' }));
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        return res.status(400).send({ message: 'Ошибка обработки данных' });
+      }
+      return res.status(500).send({ message: 'Внутренняя ошибка сервера.' });
+    });
 };
 // Создание нового пользователя
 module.exports.createUser = (req, res) => {

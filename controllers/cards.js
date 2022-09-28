@@ -32,13 +32,13 @@ module.exports.createCard = (req, res) => {
 
 // Удаление карточки
 module.exports.deleteCard = (req, res) => {
-  Card.findById(req.params.cardId)
-    .then((card) => {
-      if (!card) {
+  Card.findByIdAndRemove(req.params.cardId)
+    .then((cards) => {
+      if (!cards) {
         res.status(404).send({ message: 'Карточка не найдена.' });
         return;
       }
-      res.status(200).send(card);
+      res.status(200).send(cards);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
