@@ -23,7 +23,7 @@ module.exports.createCard = (req, res) => {
     .then((card) => res.status(200).send(card))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(404).send({ message: 'Переданы неверные данные.' });
+        res.status(400).send({ message: 'Переданы неверные данные.' });
         return;
       }
       res.status(500).send({ message: 'Внутренняя ошибка сервера.' });
@@ -35,7 +35,7 @@ module.exports.deleteCard = (req, res) => {
   Card.findById(req.params.cardId)
     .then((card) => {
       if (!card) {
-        res.status(400).send({ message: 'Карточка не найдена.' });
+        res.status(404).send({ message: 'Карточка не найдена.' });
         return;
       }
       res.status(200).send(card);
@@ -80,7 +80,7 @@ module.exports.dislikeCard = (req, res) => {
   )
     .then((card) => {
       if (!card) {
-        res.status(400).send({ message: 'Карточка не найдена. Лайк не удалось убрать.' });
+        res.status(404).send({ message: 'Карточка не найдена. Лайк не удалось убрать.' });
         return;
       }
       res.status(200).send(card);

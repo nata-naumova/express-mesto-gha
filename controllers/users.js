@@ -19,7 +19,7 @@ module.exports.getUserById = (req, res) => {
   User.findById(req.params.userId)
     .then((user) => {
       if (!user) {
-        res.status(400).send({ message: 'Запрашиваемый пользователь не найден.' });
+        res.status(404).send({ message: 'Запрашиваемый пользователь не найден.' });
         return;
       }
       res.status(200).send(user);
@@ -33,7 +33,7 @@ module.exports.createUser = (req, res) => {
     .then((user) => { res.status(200).send(user); })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(404).send({ message: 'Переданы неккорректные данные при создании пользователя' });
+        res.status(400).send({ message: 'Переданы неккорректные данные при создании пользователя' });
         return;
       }
       res.status(500).send({ message: 'Внутренняя ошибка сервера. createUser' });
