@@ -19,7 +19,7 @@ module.exports.getUserById = (req, res) => {
   User.findById(req.params.userId)
     .then((user) => {
       if (!user) {
-        res.status(404).send({ message: 'Запрашиваемый пользователь не найден.' });
+        res.status(400).send({ message: 'Запрашиваемый пользователь не найден.' });
         return;
       }
       res.status(200).send(user);
@@ -33,7 +33,7 @@ module.exports.createUser = (req, res) => {
     .then((user) => { res.status(200).send(user); })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(400).send({ message: 'Переданы неккорректные данные при создании пользователя' });
+        res.status(404).send({ message: 'Переданы неккорректные данные при создании пользователя' });
         return;
       }
       res.status(500).send({ message: 'Внутренняя ошибка сервера. createUser' });
@@ -45,9 +45,16 @@ module.exports.updateUser = (req, res) => {
   User.findByIdAndUpdate(
     req.user._id,
     { name, about },
+    { new: true, runValidators: true },
   )
     .then((user) => res.status(200).send(user))
-    .catch(() => res.status(500).send({ message: 'Внутренняя ошибка сервера.' }));
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        res.status(400).send({ message: 'Переданы некорректные данные при обновлении профиля.' });
+        return;
+      }
+      res.status(500).send({ message: 'Внутренняя ошибка сервера.' });
+    });
 };
 
 // Обновление аватара пользователя
@@ -56,6 +63,7 @@ module.exports.updateAvatar = (req, res) => {
   User.findByIdAndUpdate(
     req.user._id,
     { avatar },
+    { new: true, runValidators: true },
   )
     .then((user) => res.status(200).send(user))
     .catch((err) => {

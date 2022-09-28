@@ -1,56 +1,56 @@
 const Card = require('../models/card');
-const BadRequestError = require('../errors/BadRequestError');
-const ForbiddenError = require('../errors/ForbiddenError');
-const NotFoundError = require('../errors/NotFoundError');
 
 // Получение карточек
-module.exports.getCards = (req, res, next) => {
+module.exports.getCards = (req, res) => {
   Card.find({})
     .then((cards) => {
       if (cards.length === 0) {
-        return next(new BadRequestError('Карточки не найдены.'));
+        res.status(404).send({ message: 'Карточки на найдены.' });
+        return;
       }
-      return res.status(200).send(cards);
+      res.status(200).send(cards);
     })
-    .catch(next);
+    .catch(() => {
+      res.status(500).send({ message: 'Внутренняя ошибка сервера.' });
+    });
 };
 
 // Создание новой карточки
-module.exports.createCard = (req, res, next) => {
+module.exports.createCard = (req, res) => {
   const { name, link } = req.body;
 
   Card.create({ name, link, owner: req.user._id })
     .then((card) => res.status(200).send(card))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        return next(new BadRequestError('Переданы неверные данные.'));
+        res.status(404).send({ message: 'Переданы неверные данные.' });
+        return;
       }
-      return next(err);
+      res.status(500).send({ message: 'Внутренняя ошибка сервера.' });
     });
 };
 
 // Удаление карточки
-module.exports.deleteCard = (req, res, next) => {
-  const { cardId } = req.params;
-  const { _id } = req.user;
-  Card.findById(cardId)
-    // eslint-disable-next-line consistent-return
+module.exports.deleteCard = (req, res) => {
+  Card.findById(req.params.cardId)
     .then((card) => {
       if (!card) {
-        throw new NotFoundError('Карточка не найдена.');
+        res.status(400).send({ message: 'Карточка не найдена.' });
+        return;
       }
-      if (card.owner.valueOf() !== _id) {
-        throw new ForbiddenError('Нельзя удалить чужую карточку!');
-      }
-      Card.findByIdAndRemove(cardId)
-        .then((deletedCard) => res.status(200).send(deletedCard))
-        .catch(next);
+      res.status(200).send(card);
     })
-    .catch(next);
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        res.status(400).send({ message: 'Ошибка обработки данных' });
+        return;
+      }
+      res.status(500).send({ message: 'Внутренняя ошибка сервера.' });
+    });
 };
 
 // Поставить лайк
-module.exports.likeCard = (req, res, next) => {
+module.exports.likeCard = (req, res) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
     { $addToSet: { likes: req.user._id } },
@@ -58,15 +58,21 @@ module.exports.likeCard = (req, res, next) => {
   )
     .then((card) => {
       if (!card) {
-        return next(new NotFoundError('Карточка не найдена.'));
+        res.status(404).send({ message: 'Объект не найден' });
+        return;
       }
-      return res.status(200).send(card);
+      res.status(200).send(card);
     })
-    .catch(next);
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        return res.status(400).send({ message: 'Ошибка обработки данных' });
+      }
+      return res.status(500).send({ message: 'Ошибка работы сервера' });
+    });
 };
 
 // Удалить лайк
-module.exports.dislikeCard = (req, res, next) => {
+module.exports.dislikeCard = (req, res) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
     { $pull: { likes: req.user._id } },
@@ -74,9 +80,15 @@ module.exports.dislikeCard = (req, res, next) => {
   )
     .then((card) => {
       if (!card) {
-        return next(new NotFoundError('Карточка не найдена. Лайк не удалось убрать.'));
+        res.status(400).send({ message: 'Карточка не найдена. Лайк не удалось убрать.' });
+        return;
       }
-      return res.status(200).send(card);
+      res.status(200).send(card);
     })
-    .catch(next);
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        return res.status(400).send({ message: 'Ошибка обработки данных' });
+      }
+      return res.status(500).send({ message: 'Ошибка работы сервера' });
+    });
 };
