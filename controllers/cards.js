@@ -5,7 +5,7 @@ module.exports.getCards = (req, res) => {
   Card.find({})
     .populate('owner')
     .then((cards) => {
-      if (cards.length === 0) {
+      if (!cards) {
         res.status(404).send({ message: 'Карточки на найдены.' });
         return;
       }
