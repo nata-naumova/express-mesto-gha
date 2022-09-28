@@ -30,10 +30,14 @@ module.exports.getUserById = (req, res) => {
 module.exports.createUser = (req, res) => {
   const { name, about, avatar } = req.body;
   User.create({ name, about, avatar })
-    .then((user) => {
-      res.status(200).send(user);
-    })
-    .catch(() => res.status(500).send({ message: 'Внутренняя ошибка сервера.' }));
+    .then((user) => { res.status(200).send(user); })
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        res.status(400).send({ message: 'Переданы неккорректные данные при создании пользователя' });
+        return;
+      }
+      res.status(500).send(err);
+    });
 };
 // Обновление информации о пользователе
 module.exports.updateUser = (req, res) => {
