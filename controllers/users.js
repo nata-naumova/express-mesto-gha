@@ -1,64 +1,57 @@
 const User = require('../models/user');
-const BadRequestError = require('../errors/BadRequestError');
-const NotFoundError = require('../errors/NotFoundError');
-const InternalServerError = require('../errors/InternalServerError');
 
 // Получение пользователей
-module.exports.getUsers = (req, res, next) => {
+module.exports.getUsers = (req, res) => {
   User.find({})
     .then((users) => {
       if (users.length === 0) {
-        return next(new NotFoundError('Пользователи не найдены.'));
+        res.status(404).send({ message: 'Пользователи на найдены.' });
+        return;
       }
-      return res.status(200).send(users);
+      res.status(200).send(users);
     })
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        next(new InternalServerError('Внутренняя ошибка сервера.'));
-      }
-      return next(err);
+    .catch(() => {
+      res.status(500).send({ message: 'Внутренняя ошибка сервера.' });
     });
 };
 // Получение пользователя по его id
-module.exports.getUserById = (req, res, next) => {
+module.exports.getUserById = (req, res) => {
   User.findById(req.params.userId)
     .then((user) => {
       if (!user) {
-        return next(new NotFoundError('Запрашиваемый пользователь не найден.'));
+        res.status(404).send({ message: 'Запрашиваемый пользователь не найден.' });
+        return;
       }
-      return res.status(200).send(user);
+      res.status(200).send(user);
     })
-    .catch(next);
+    .catch(() => res.status(500).send({ message: 'Внутренняя ошибка сервера.' }));
 };
 // Создание нового пользователя
-module.exports.createUser = (req, res, next) => {
+module.exports.createUser = (req, res) => {
   const { name, about, avatar } = req.body;
   User.create({ name, about, avatar })
     .then((user) => { res.status(200).send(user); })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        return next(new BadRequestError('Переданы неккорректные данные при создании пользователя.'));
+        res.status(400).send({ message: 'Переданы неккорректные данные при создании пользователя' });
+        return;
       }
-      return next(new InternalServerError('Внутренняя ошибка сервера.'));
+      res.status(500).send({ message: 'Внутренняя ошибка сервера. createUser' });
     });
 };
 // Обновление информации о пользователе
-module.exports.updateUser = (req, res, next) => {
+module.exports.updateUser = (req, res) => {
   const { name, about } = req.body;
   User.findByIdAndUpdate(
     req.user._id,
     { name, about },
   )
     .then((user) => res.status(200).send(user))
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        next(new BadRequestError('Переданы неккорректные данные при создании пользователя.'));
-      }
-      return next(err);
-    });
+    .catch(() => res.status(500).send({ message: 'Внутренняя ошибка сервера.' }));
 };
+
 // Обновление аватара пользователя
-module.exports.updateAvatar = (req, res, next) => {
+module.exports.updateAvatar = (req, res) => {
   const { avatar } = req.body;
   User.findByIdAndUpdate(
     req.user._id,
@@ -67,8 +60,8 @@ module.exports.updateAvatar = (req, res, next) => {
     .then((user) => res.status(200).send(user))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        next(new BadRequestError('Неверная ссылка'));
+        res.status(400).send({ message: 'Неверная ссылка' });
       }
-      return next(err);
+      res.status(500).send({ message: 'Внутренняя ошибка сервера.' });
     });
 };
