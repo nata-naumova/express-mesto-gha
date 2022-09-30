@@ -1,47 +1,56 @@
 const Card = require('../models/card');
-const BadRequestError = require('../errors/BadRequestError');
-const NotFoundError = require('../errors/NotFoundError');
+const {
+  NOTFOUND_ERROR,
+  INTERNAL_SERVER_ERROR,
+  BAD_REQUEST,
+  DEFAULT_ERROR_MESSAGE,
+} = require('../errors/errors');
 
 // Получение карточек
-module.exports.getCards = (req, res, next) => {
+module.exports.getCards = (req, res) => {
   Card.find({})
     .then((cards) => res.status(200).send(cards))
-    .catch(next);
+    .catch(() => {
+      res.status(INTERNAL_SERVER_ERROR).send({ message: DEFAULT_ERROR_MESSAGE });
+    });
 };
 
 // Создание новой карточки
-module.exports.createCard = (req, res, next) => {
+module.exports.createCard = (req, res) => {
   const { name, link } = req.body;
 
   Card.create({ name, link, owner: req.user._id })
     .then((card) => res.status(200).send(card))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        return next(new BadRequestError('Переданы неверные данные.'));
+        res.status(BAD_REQUEST).send({ message: '400 — Переданы некорректные данные при создании карточки.' });
+        return;
       }
-      return next(err);
+      res.status(INTERNAL_SERVER_ERROR).send({ message: DEFAULT_ERROR_MESSAGE });
     });
 };
 
 // Удаление карточки
-module.exports.deleteCard = (req, res, next) => {
+module.exports.deleteCard = (req, res) => {
   Card.findByIdAndRemove(req.params.cardId)
     .then((cards) => {
       if (!cards) {
-        throw new NotFoundError('Карточка не найдена.');
+        res.status(NOTFOUND_ERROR).send({ message: '404 — Карточка не найдена.' });
+        return;
       }
       res.status(200).send(cards);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        return next(new NotFoundError('Ошибка обработки данных'));
+        res.status(BAD_REQUEST).send({ message: '400 — Ошибка обработки данных.' });
+        return;
       }
-      return next(err);
+      res.status(INTERNAL_SERVER_ERROR).send({ message: DEFAULT_ERROR_MESSAGE });
     });
 };
 
 // Поставить лайк
-module.exports.likeCard = (req, res, next) => {
+module.exports.likeCard = (req, res) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
     { $addToSet: { likes: req.user._id } },
@@ -49,20 +58,22 @@ module.exports.likeCard = (req, res, next) => {
   )
     .then((card) => {
       if (!card) {
-        return next(new NotFoundError('Карточка не найдена.'));
+        res.status(NOTFOUND_ERROR).send({ message: '404 — Карточка не найдена.' });
+        return;
       }
-      return res.status(200).send(card);
+      res.status(200).send(card);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        return next(new NotFoundError('Ошибка обработки данных'));
+        res.status(BAD_REQUEST).send({ message: '400 — Ошибка обработки данных.' });
+        return;
       }
-      return next(err);
+      res.status(INTERNAL_SERVER_ERROR).send({ message: DEFAULT_ERROR_MESSAGE });
     });
 };
 
 // Удалить лайк
-module.exports.dislikeCard = (req, res, next) => {
+module.exports.dislikeCard = (req, res) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
     { $pull: { likes: req.user._id } },
@@ -70,14 +81,16 @@ module.exports.dislikeCard = (req, res, next) => {
   )
     .then((card) => {
       if (!card) {
-        return next(new NotFoundError('Карточка не найдена. Лайк не удалось убрать.'));
+        res.status(NOTFOUND_ERROR).send({ message: '404 — Карточка не найдена. Лайк не удалось убрать.' });
+        return;
       }
-      return res.status(200).send(card);
+      res.status(200).send(card);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        return next(new NotFoundError('Ошибка обработки данных'));
+        res.status(BAD_REQUEST).send({ message: '400 — Ошибка обработки данных.' });
+        return;
       }
-      return next(err);
+      res.status(INTERNAL_SERVER_ERROR).send({ message: DEFAULT_ERROR_MESSAGE });
     });
 };
