@@ -26,14 +26,8 @@ app.use((req, res, next) => {
 app.use('/', require('./routes/users'));
 app.use('/', require('./routes/cards'));
 
-app.use('*', (req, res) => {
-  try {
-    throw new NotFoundError('Марштур не найден.');
-  } catch (err) {
-    if (err instanceof NotFoundError) {
-      res.status(404).send({ message: err.message });
-    }
-  }
+app.use('*', (_, res, next) => {
+  next(new NotFoundError('Марштур не найден.'));
 });
 
 app.listen(PORT, () => {
