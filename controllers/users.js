@@ -62,7 +62,7 @@ module.exports.updateUser = (req, res) => {
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(BAD_REQUEST).send({ message: '400 — Переданы некорректные данные при создании пользователя.' });
+        res.status(BAD_REQUEST).send({ message: '400 — Переданы некорректные данные при обновлении информации пользователя.' });
         return;
       }
       res.status(INTERNAL_SERVER_ERROR).send({ message: DEFAULT_ERROR_MESSAGE });
@@ -70,7 +70,7 @@ module.exports.updateUser = (req, res) => {
 };
 
 // Обновление аватара пользователя
-module.exports.updateAvatar = (req, res, next) => {
+module.exports.updateAvatar = (req, res) => {
   const { avatar } = req.body;
   User.findByIdAndUpdate(
     req.user._id,
@@ -79,14 +79,14 @@ module.exports.updateAvatar = (req, res, next) => {
   )
     .then((user) => {
       if (!user) {
-        return next(new NotFoundError('Пользователь по указанному _id не найден.'));
+        res.status(NOTFOUND_ERROR).send({ message: 'Пользователь по указанному _id не найден.' });
       }
-      return res.send({ data: user });
+      return res.status(200).send({ data: user });
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        return next(new BadRequestError('Переданы некорректные данные при обновлении пользователя'));
+        res.status(BAD_REQUEST).send({ message: '400 — Переданы некорректные данные при обновлении аватара пользователя.' });
       }
-      return next(err);
+      res.status(INTERNAL_SERVER_ERROR).send({ message: DEFAULT_ERROR_MESSAGE });
     });
 };
