@@ -26,7 +26,7 @@ app.use((req, res, next) => {
 app.use('/', require('./routes/users'));
 app.use('/', require('./routes/cards'));
 
-app.use('*', (_, res, next) => {
+app.use('*', (req, res, next) => {
   next(new NotFoundError('Марштур не найден.'));
 });
 
