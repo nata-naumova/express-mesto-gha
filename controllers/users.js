@@ -1,52 +1,100 @@
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const User = require('../models/user');
-const {
-  NOTFOUND_ERROR,
-  INTERNAL_SERVER_ERROR,
-  BAD_REQUEST,
-  DEFAULT_ERROR_MESSAGE,
-} = require('../errors/errors');
+const { SEKRET_KEY } = require('../constants');
 
-// Получение пользователей
-module.exports.getUsers = (req, res) => {
-  User.find({})
-    .then((users) => res.status(200).send(users))
+const BadRequestError = require('../errors/BadRequestError');
+const NotFoundError = require('../errors/NotFoundError');
+const ConflictError = require('../errors/ConflictError');
+const UnauthorizedError = require('../errors/UnauthorizedError');
+
+const SALT_ROUNDS = 10;
+/* 3. Создайте контроллер login */
+//  login -  получает из запроса почту и пароль и проверяет их
+module.exports.login = (req, res, next) => {
+  const { email, password } = req.body;
+
+  return User.findUserByCredentials(email, password)
+    .then((user) => {
+      const token = jwt.sign({ _id: user._id }, SEKRET_KEY, { expiresIn: '7d' });
+      res.send({ token });
+    })
     .catch(() => {
-      res.status(INTERNAL_SERVER_ERROR).send({ message: DEFAULT_ERROR_MESSAGE });
+      next(new UnauthorizedError('Неправильные почта или пароль.'));
     });
 };
+
+// Получение пользователей
+module.exports.getUsers = (req, res, next) => {
+  User.find({})
+    .then((users) => res.status(200).send(users))
+    .catch(next);
+};
+
 // Получение пользователя по его id
-module.exports.getUserById = (req, res) => {
+module.exports.getUserById = (req, res, next) => {
   User.findById(req.params.userId)
+    .orFail(() => {
+      next(new NotFoundError('Пользователь по указанному _id не найден.'));
+    })
     .then((user) => {
       if (!user) {
-        res.status(NOTFOUND_ERROR).send({ message: 'Пользователь по указанному _id не найден.' });
-        return;
+        throw (new NotFoundError('Пользователь по указанному _id не найден.'));
       }
       res.status(200).send(user);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(BAD_REQUEST).send({ message: '400 — Переданы некорректные данные _id.' });
-        return;
+        return next(new BadRequestError('400 — Переданы некорректные данные _id.'));
       }
-      res.status(INTERNAL_SERVER_ERROR).send({ message: DEFAULT_ERROR_MESSAGE });
+      return next(err);
     });
 };
+/* 2. Доработайте контроллер createUser */
 // Создание нового пользователя
-module.exports.createUser = (req, res) => {
-  const { name, about, avatar } = req.body;
-  User.create({ name, about, avatar })
-    .then((user) => { res.status(200).send(user); })
+module.exports.createUser = (req, res, next) => {
+  const {
+    name, about, avatar, email, password,
+  } = req.body;
+
+  if (!email || !password) {
+    return res.status(BadRequestError).send({ message: 'Поля email и password обязательны' });
+  }
+
+  return bcrypt.hash(req.body.password, SALT_ROUNDS)
+    .then((hash) => User.create({
+      name, about, avatar, email: req.body.email, password: hash,
+    }))
+    .then((user) => {
+      res.status(200).send({
+        name: user.name, about: user.about, avatar: user.avatar, _id: user._id, email: user.email,
+      });
+    })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(BAD_REQUEST).send({ message: '400 — Переданы некорректные данные при создании пользователя.' });
-        return;
+        return next(new BadRequestError('400 — Переданы некорректные данные при создании пользователя.'));
       }
-      res.status(INTERNAL_SERVER_ERROR).send({ message: DEFAULT_ERROR_MESSAGE });
+      if (err.code === 11000) {
+        return next(new ConflictError('Передан уже зарегистрированный email.'));
+      }
+      return next(err);
     });
 };
+/* 6. Создайте контроллер и роут для получения информации о пользователе */
+// Возвращаем информацию о текущем пользователе
+module.exports.getCurrentUser = (req, res, next) => {
+  User.findById(req.user._id)
+    .then((user) => {
+      if (!user) {
+        return next(new NotFoundError('GET /users/me Пользователь по указанному _id не найден.'));
+      }
+      return res.status(200).send(user);
+    })
+    .catch((err) => next(err));
+};
+
 // Обновление информации о пользователе
-module.exports.updateUser = (req, res) => {
+module.exports.updateUser = (req, res, next) => {
   const { name, about } = req.body;
   User.findByIdAndUpdate(
     req.user._id,
@@ -55,23 +103,22 @@ module.exports.updateUser = (req, res) => {
   )
     .then((user) => {
       if (!user) {
-        res.status(NOTFOUND_ERROR).send({ message: 'Пользователь по указанному _id не найден.' });
-        return;
+        return next(new NotFoundError('Пользователь по указанному _id не найден.'));
       }
-      res.status(200).send(user);
+      return res.status(200).send({ data: user });
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(BAD_REQUEST).send({ message: '400 — Переданы некорректные данные при обновлении информации пользователя.' });
-        return;
+        return next(new BadRequestError('400 — Переданы некорректные данные при обновлении информации пользователя.'));
       }
-      res.status(INTERNAL_SERVER_ERROR).send({ message: DEFAULT_ERROR_MESSAGE });
+      return next(err);
     });
 };
 
 // Обновление аватара пользователя
-module.exports.updateAvatar = (req, res) => {
+module.exports.updateAvatar = (req, res, next) => {
   const { avatar } = req.body;
+
   User.findByIdAndUpdate(
     req.user._id,
     { avatar },
@@ -79,14 +126,14 @@ module.exports.updateAvatar = (req, res) => {
   )
     .then((user) => {
       if (!user) {
-        res.status(NOTFOUND_ERROR).send({ message: 'Пользователь по указанному _id не найден.' });
+        return next(new NotFoundError('Пользователь по указанному _id не найден.'));
       }
       return res.status(200).send({ data: user });
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(BAD_REQUEST).send({ message: '400 — Переданы некорректные данные при обновлении аватара пользователя.' });
+        return next(new BadRequestError('400 — Переданы некорректные данные при обновлении аватара пользователя.'));
       }
-      res.status(INTERNAL_SERVER_ERROR).send({ message: DEFAULT_ERROR_MESSAGE });
+      return next(err);
     });
 };
