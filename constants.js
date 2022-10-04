@@ -9,7 +9,6 @@ const SEKRET_KEY = 'some-secret-key';
 
 /* 3. Валидируйте данные на уровне схемы */
 const AVATAR_REGEX = /^https?:\/\/(www\.)?[a-zA-Z\d-]+\.[\w\d\-.~:/?#[\]@!$&'()*+,;=]{2,}#?$/;
-const LINK_REGEX = /^https?:\/\/(www\.)?[a-zA-Z\d-]+\.[\w\d\-.~:/?#[\]@!$&'()*+,;=]{2,}#?$/;
 
 module.exports = {
   BAD_REQUEST,
@@ -21,5 +20,4 @@ module.exports = {
   DEFAULT_ERROR_MESSAGE,
   SEKRET_KEY,
   AVATAR_REGEX,
-  LINK_REGEX,
 };
