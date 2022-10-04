@@ -49,5 +49,5 @@ app.use(userRouter);
 app.use(cardRouter);
 
 // Обработаем некорректный маршрут и вернём ошибку 404
-app.use('*', auth, (req, res, next) => next(new NotFoundError(`Страницы по адресу ${req.baseUrl} не существует`)));
+app.use('*', (req, res, next) => next(new NotFoundError(`Страницы по адресу ${req.baseUrl} не существует`)));
 module.exports = app;

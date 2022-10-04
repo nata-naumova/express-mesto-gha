@@ -35,7 +35,7 @@ module.exports.getUsers = (req, res, next) => {
 module.exports.getUserById = (req, res, next) => {
   User.findById(req.params.userId)
     .orFail(() => {
-      next(new NotFoundError('Пользователь по указанному _id не найден.'));
+      throw new NotFoundError('Пользователь по указанному _id не найден.');
     })
     .then((user) => {
       if (!user) {
@@ -57,13 +57,9 @@ module.exports.createUser = (req, res, next) => {
     name, about, avatar, email, password,
   } = req.body;
 
-  if (!email || !password) {
-    return res.status(BadRequestError).send({ message: 'Поля email и password обязательны' });
-  }
-
-  return bcrypt.hash(req.body.password, SALT_ROUNDS)
+  return bcrypt.hash(password, SALT_ROUNDS)
     .then((hash) => User.create({
-      name, about, avatar, email: req.body.email, password: hash,
+      name, about, avatar, email, password: hash,
     }))
     .then((user) => {
       res.status(200).send({

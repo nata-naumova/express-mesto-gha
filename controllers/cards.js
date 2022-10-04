@@ -26,7 +26,7 @@ module.exports.createCard = (req, res, next) => {
 
 // Удаление карточки
 module.exports.deleteCard = (req, res, next) => {
-  Card.findByIdAndRemove(req.params.cardId)
+  Card.findById(req.params.cardId)
     .then((cards) => {
       if (!cards) {
         throw new NotFoundError('404 — Карточка не найдена.');
