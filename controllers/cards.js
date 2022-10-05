@@ -30,12 +30,12 @@ module.exports.deleteCard = (req, res, next) => {
     .then((cards) => {
       if (!cards) {
         throw new NotFoundError('404 — Карточка не найдена.');
-      } else if (!cards.owner.equals(req.user._id)) {
+      }
+      if (!cards.owner.equals(req.user._id)) {
         /* 9. Проконтролируйте права */
         throw new ForbiddenError('403 — Нельзя удалить чужую карточку. ');
-      } else {
-        return cards.remove().then(() => res.status(200).send(cards));
       }
+      return cards.remove().then(() => res.status(200).send(cards));
     })
     .catch((err) => {
       if (err.name === 'CastError') {
